@@ -1,8 +1,8 @@
 {
     "useGitignore": true,
-    "whitelist": [".js", ".json", ".tsx"],
-    "blacklist": [".jpg", ".mp4", ".tsbuildinfo"],
-    "ignorePaths": ["build", "dist", "node_modules", "package-lock.json"],
+    "whitelist": [".js", ".jsx", ".json", ".md", ".ts", ".tsx"],
+    "blacklist": [".jpg", ".mp4", ".tsbuildinfo", "package-lock.json"],
+    "ignorePaths": ["build", "dist", "node_modules"],
     "outputDir": "./summaries"
   }
   

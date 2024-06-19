@@ -70,16 +70,32 @@ function generateSitemap(fileStructure, indent = '') {
   return sitemap;
 }
 
+// Function to get the correct language for syntax highlighting
+function getLanguage(extension) {
+  const languages = {
+    '.js': 'javascript',
+    '.json': 'json',
+    '.tsx': 'typescript'
+    // Add more extensions and their corresponding languages as needed
+  };
+  return languages[extension] || '';
+}
+
 // Function to append file contents to the output
-function appendFileContents(dir, fileStructure, outputStream, progress) {
+function appendFileContents(dir, fileStructure, baseDir, progress) {
   Object.keys(fileStructure).forEach((key) => {
     const filePath = path.join(dir, key);
+    const relativePath = path.relative(baseDir, filePath);
     if (fileStructure[key]) {
-      appendFileContents(dir, fileStructure[key], outputStream, progress);
+      appendFileContents(filePath, fileStructure[key], baseDir, progress);
     } else {
-      outputStream.write(`\n\n===== ${key} =====\n\n`);
       const content = fs.readFileSync(filePath, 'utf8');
-      outputStream.write(content);
+      const extension = path.extname(filePath);
+      const language = getLanguage(extension);
+      const mdContent = `\n\n## ${relativePath}\n\n\`\`\`${language}\n${content}\n\`\`\`\n`;
+
+      const outputFilePath = path.join(config.outputDir, `${relativePath.replace(/\//g, '_')}.md`);
+      fs.writeFileSync(outputFilePath, mdContent);
     }
     progress.increment();
   });
@@ -100,7 +116,7 @@ function getRepoName(repoPath) {
   return path.basename(path.resolve(repoPath));
 }
 
-// Main function to create the repo summary file
+// Main function to create the repo summary files
 function createRepoSummary(repoPath) {
   console.log('Scanning files...');
   const fileStructure = traverseDir(repoPath);
@@ -115,25 +131,22 @@ function createRepoSummary(repoPath) {
 
   const repoName = getRepoName(repoPath);
   const commitHash = getCurrentCommitHash(repoPath);
-  const outputFileName = commitHash
-    ? `repoSummary_${repoName}_(${commitHash}).js`
-    : `repoSummary_${repoName}.js`;
+  const sitemapFileName = commitHash
+    ? `repoSummary_${repoName}_(${commitHash}).md`
+    : `repoSummary_${repoName}.md`;
 
   const outputDir = path.resolve(config.outputDir);
   if (!fs.existsSync(outputDir)) {
     fs.mkdirSync(outputDir, { recursive: true });
   }
-  const outputPath = path.join(outputDir, outputFileName);
+  const sitemapPath = path.join(outputDir, sitemapFileName);
 
-  const outputStream = fs.createWriteStream(outputPath);
-  outputStream.write('File Structure Sitemap:\n\n');
-  outputStream.write(sitemap);
+  fs.writeFileSync(sitemapPath, `# File Structure Sitemap\n\n${sitemap}`);
 
-  appendFileContents(repoPath, fileStructure, outputStream, progress);
-  outputStream.end(() => {
-    progress.stop();
-    console.log(`Repo summary created in ${outputPath}`);
-  });
+  appendFileContents(repoPath, fileStructure, repoPath, progress);
+  progress.stop();
+
+  console.log(`Repo summary created in ${sitemapPath}`);
 }
 
 // Run the script with the repository path
