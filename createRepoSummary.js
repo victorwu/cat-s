@@ -4,22 +4,34 @@ const ignore = require('ignore');
 const cliProgress = require('cli-progress');
 const { execSync } = require('child_process');
 
+// Load configuration
+const configPath = path.join(__dirname, 'config.json');
+let config = {
+  useGitignore: true,
+  whitelist: ['.js', '.json', '.tsx'],
+  blacklist: ['.jpg', '.mp4', '.tsbuildinfo'],
+  ignorePaths: ['build', 'dist', 'node_modules', 'package-lock.json']
+};
+
+if (fs.existsSync(configPath)) {
+  config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+}
+
 // Load .gitignore and setup ignore filter
 const ig = ignore();
-if (fs.existsSync('.gitignore')) {
+if (config.useGitignore && fs.existsSync('.gitignore')) {
   const gitignoreContent = fs.readFileSync('.gitignore', 'utf8');
   ig.add(gitignoreContent.split('\n').filter(Boolean));
 }
 
-// Whitelist and blacklist configurations
-const whitelist = ['.js', '.json', '.tsx'];
-const blacklist = ['.jpg', '.mp4'];
+// Add additional paths to ignore
+ig.add(config.ignorePaths);
 
 // Check if a file should be processed based on whitelist and blacklist
 function shouldProcessFile(file) {
   const ext = path.extname(file);
-  if (blacklist.includes(ext)) return false;
-  if (whitelist.length > 0) return whitelist.includes(ext);
+  if (config.blacklist.includes(ext)) return false;
+  if (config.whitelist.length > 0) return config.whitelist.includes(ext);
   return true;
 }
 
@@ -32,7 +44,7 @@ function traverseDir(dir, fileStructure = {}, baseDir = dir) {
     const relativePath = path.relative(baseDir, filePath);
     const stats = fs.statSync(filePath);
 
-    if (ig.ignores(relativePath)) return;
+    if (ig.ignores(relativePath) || config.ignorePaths.includes(relativePath)) return;
 
     if (stats.isDirectory()) {
       fileStructure[relativePath] = {};

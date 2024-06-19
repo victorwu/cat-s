@@ -1,0 +1,7 @@
+{
+    "useGitignore": true,
+    "whitelist": [".js", ".json", ".tsx"],
+    "blacklist": [".jpg", ".mp4", ".tsbuildinfo"],
+    "ignorePaths": ["build", "dist", "node_modules", "package-lock.json"]
+  }
+  
