@@ -20,6 +20,11 @@ if (fs.existsSync(configPath)) {
   process.exit(1);
 }
 
+// Rename whitelist and blacklist to include and exclude
+const includeExtensions = config.include || [];
+const excludeExtensions = config.exclude || [];
+config.ignorePaths.push('pnpm-lock.yaml');  // Add pnpm-lock.yaml to the ignore list
+
 // Load .gitignore and setup ignore filter
 const ig = ignore();
 if (config.useGitignore && fs.existsSync('.gitignore')) {
@@ -30,11 +35,11 @@ if (config.useGitignore && fs.existsSync('.gitignore')) {
 // Add additional paths to ignore
 ig.add(config.ignorePaths);
 
-// Check if a file should be processed based on whitelist and blacklist
+// Check if a file should be processed based on include and exclude
 function shouldProcessFile(file) {
   const ext = path.extname(file);
-  if (config.blacklist.includes(ext)) return false;
-  if (config.whitelist.length > 0) return config.whitelist.includes(ext);
+  if (excludeExtensions.includes(ext)) return false;
+  if (includeExtensions.length > 0) return includeExtensions.includes(ext);
   return true;
 }
 
