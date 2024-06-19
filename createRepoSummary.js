@@ -105,6 +105,11 @@ function appendFileContents(dir, fileStructure, outputStream, baseDir, progress)
     } else {
       try {
         if (fs.existsSync(filePath)) {
+          const stats = fs.statSync(filePath);
+          if (stats.size > 1024 * 1024) {
+            console.log(`Skipping large file: ${relativePath}`);
+            return;
+          }
           const content = fs.readFileSync(filePath, 'utf8');
           const extension = path.extname(filePath);
           const language = getLanguage(extension);
