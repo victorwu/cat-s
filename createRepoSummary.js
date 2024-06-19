@@ -2,8 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const ignore = require('ignore');
 const cliProgress = require('cli-progress');
-
-const outputFileName = 'repo_summary.txt';
+const { execSync } = require('child_process');
 
 // Load .gitignore and setup ignore filter
 const ig = ignore();
@@ -73,6 +72,21 @@ function appendFileContents(dir, fileStructure, outputStream, progress) {
   });
 }
 
+// Function to get the current git commit hash
+function getCurrentCommitHash(repoPath) {
+  try {
+    return execSync('git rev-parse HEAD', { cwd: repoPath, encoding: 'utf8' }).trim().substring(0, 8);
+  } catch (error) {
+    console.warn('Could not retrieve git commit hash');
+    return null;
+  }
+}
+
+// Function to extract the actual repository name
+function getRepoName(repoPath) {
+  return path.basename(path.resolve(repoPath));
+}
+
 // Main function to create the repo summary file
 function createRepoSummary(repoPath) {
   console.log('Scanning files...');
@@ -85,6 +99,12 @@ function createRepoSummary(repoPath) {
   progress.start(fileCount, 0);
 
   const sitemap = generateSitemap(fileStructure);
+
+  const repoName = getRepoName(repoPath);
+  const commitHash = getCurrentCommitHash(repoPath);
+  const outputFileName = commitHash
+    ? `repoSummary_${repoName}_(${commitHash}).js`
+    : `repoSummary_${repoName}.js`;
 
   const outputStream = fs.createWriteStream(outputFileName);
   outputStream.write('File Structure Sitemap:\n\n');
