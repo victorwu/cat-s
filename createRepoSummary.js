@@ -6,16 +6,18 @@ const { execSync } = require('child_process');
 
 // Load configuration
 const configPath = path.join(__dirname, 'config.json');
-let config = {
-  useGitignore: true,
-  whitelist: ['.js', '.json', '.tsx'],
-  blacklist: ['.jpg', '.mp4', '.tsbuildinfo'],
-  ignorePaths: ['build', 'dist', 'node_modules', 'package-lock.json'],
-  outputDir: './summaries'
-};
+let config;
 
 if (fs.existsSync(configPath)) {
-  config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+  try {
+    config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+  } catch (err) {
+    console.error(`Error reading configuration file at ${configPath}: ${err.message}`);
+    process.exit(1);
+  }
+} else {
+  console.error(`Configuration file not found at ${configPath}`);
+  process.exit(1);
 }
 
 // Load .gitignore and setup ignore filter
@@ -74,28 +76,41 @@ function generateSitemap(fileStructure, indent = '') {
 function getLanguage(extension) {
   const languages = {
     '.js': 'javascript',
+    '.jsx': 'javascript',
     '.json': 'json',
-    '.tsx': 'typescript'
+    '.md': 'markdown',
+    '.sh': 'shell',
+    '.ts': 'typescript',
+    '.tsx': 'typescript',
+    '.yaml': 'yaml',
+    '.yml': 'yaml',
+    'Dockerfile': 'docker'
     // Add more extensions and their corresponding languages as needed
   };
   return languages[extension] || '';
 }
 
 // Function to append file contents to the output
-function appendFileContents(dir, fileStructure, baseDir, progress) {
+function appendFileContents(dir, fileStructure, outputStream, baseDir, progress) {
   Object.keys(fileStructure).forEach((key) => {
     const filePath = path.join(dir, key);
     const relativePath = path.relative(baseDir, filePath);
     if (fileStructure[key]) {
-      appendFileContents(filePath, fileStructure[key], baseDir, progress);
+      appendFileContents(filePath, fileStructure[key], outputStream, baseDir, progress);
     } else {
-      const content = fs.readFileSync(filePath, 'utf8');
-      const extension = path.extname(filePath);
-      const language = getLanguage(extension);
-      const mdContent = `\n\n## ${relativePath}\n\n\`\`\`${language}\n${content}\n\`\`\`\n`;
+      try {
+        if (fs.existsSync(filePath)) {
+          const content = fs.readFileSync(filePath, 'utf8');
+          const extension = path.extname(filePath);
+          const language = getLanguage(extension);
+          const mdContent = `\n\n## ${relativePath}\n\n\`\`\`${language}\n${content}\n\`\`\`\n`;
 
-      const outputFilePath = path.join(config.outputDir, `${relativePath.replace(/\//g, '_')}.md`);
-      fs.writeFileSync(outputFilePath, mdContent);
+          outputStream.write(mdContent);
+          console.log(`Content appended for: ${relativePath}`);
+        }
+      } catch (err) {
+        console.error(`Error reading file ${filePath}: ${err.message}`);
+      }
     }
     progress.increment();
   });
@@ -109,6 +124,12 @@ function getCurrentCommitHash(repoPath) {
     console.warn('Could not retrieve git commit hash');
     return null;
   }
+}
+
+// Function to get the current timestamp
+function getCurrentTimestamp() {
+  const now = new Date();
+  return `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}`;
 }
 
 // Function to extract the actual repository name
@@ -131,22 +152,27 @@ function createRepoSummary(repoPath) {
 
   const repoName = getRepoName(repoPath);
   const commitHash = getCurrentCommitHash(repoPath);
+  const timestamp = getCurrentTimestamp();
   const sitemapFileName = commitHash
-    ? `repoSummary_${repoName}_(${commitHash}).md`
-    : `repoSummary_${repoName}.md`;
+    ? `repoSummary_${repoName}_(${commitHash}_${timestamp}).md`
+    : `repoSummary_${repoName}_${timestamp}.md`;
 
   const outputDir = path.resolve(config.outputDir);
   if (!fs.existsSync(outputDir)) {
     fs.mkdirSync(outputDir, { recursive: true });
+    console.log(`Created output directory: ${outputDir}`);
   }
   const sitemapPath = path.join(outputDir, sitemapFileName);
 
-  fs.writeFileSync(sitemapPath, `# File Structure Sitemap\n\n${sitemap}`);
+  const outputStream = fs.createWriteStream(sitemapPath);
+  outputStream.write(`# File Structure Sitemap\n\n${sitemap}\n`);
+  console.log(`Sitemap written: ${sitemapPath}`);
 
-  appendFileContents(repoPath, fileStructure, repoPath, progress);
-  progress.stop();
-
-  console.log(`Repo summary created in ${sitemapPath}`);
+  appendFileContents(repoPath, fileStructure, outputStream, repoPath, progress);
+  outputStream.end(() => {
+    progress.stop();
+    console.log(`Repo summary created in ${sitemapPath}`);
+  });
 }
 
 // Run the script with the repository path
