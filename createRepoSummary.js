@@ -10,7 +10,8 @@ let config = {
   useGitignore: true,
   whitelist: ['.js', '.json', '.tsx'],
   blacklist: ['.jpg', '.mp4', '.tsbuildinfo'],
-  ignorePaths: ['build', 'dist', 'node_modules', 'package-lock.json']
+  ignorePaths: ['build', 'dist', 'node_modules', 'package-lock.json'],
+  outputDir: './summaries'
 };
 
 if (fs.existsSync(configPath)) {
@@ -118,14 +119,20 @@ function createRepoSummary(repoPath) {
     ? `repoSummary_${repoName}_(${commitHash}).js`
     : `repoSummary_${repoName}.js`;
 
-  const outputStream = fs.createWriteStream(outputFileName);
+  const outputDir = path.resolve(config.outputDir);
+  if (!fs.existsSync(outputDir)) {
+    fs.mkdirSync(outputDir, { recursive: true });
+  }
+  const outputPath = path.join(outputDir, outputFileName);
+
+  const outputStream = fs.createWriteStream(outputPath);
   outputStream.write('File Structure Sitemap:\n\n');
   outputStream.write(sitemap);
 
   appendFileContents(repoPath, fileStructure, outputStream, progress);
   outputStream.end(() => {
     progress.stop();
-    console.log(`Repo summary created in ${outputFileName}`);
+    console.log(`Repo summary created in ${outputPath}`);
   });
 }
 
