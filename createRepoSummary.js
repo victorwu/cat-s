@@ -65,8 +65,8 @@ function createRepoSummary(repoPath) {
   const commitHash = getCurrentCommitHash(repoPath);
   const timestamp = getCurrentTimestamp();
   const sitemapFileName = commitHash
-    ? `repoSummary_${repoName}_(${commitHash}_${timestamp}).md`
-    : `repoSummary_${repoName}_${timestamp}.md`;
+    ? `repoSummary_${repoName}_(${commitHash}_${timestamp}).txt`
+    : `repoSummary_${repoName}_${timestamp}.txt`;
 
   const outputDir = path.resolve(config.outputDir);
   if (!fs.existsSync(outputDir)) {
