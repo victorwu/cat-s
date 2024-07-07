@@ -4,13 +4,21 @@ const fs = require('fs');
 const path = require('path');
 const cliProgress = require('cli-progress');
 const { execSync } = require('child_process');
-const { loadConfig } = require('./configLoader');
+const { loadConfig, createDefaultConfig } = require('./configLoader');
 const { setupIgnore, traverseDir } = require('./fileTraversal');
 const { appendFileContents } = require('./fileProcessing');
 const yargs = require('yargs');
+const os = require('os');
 
-// Load configuration
-const configPath = path.join(__dirname, 'config.json');
+// Load configuration or create default config if it doesn't exist
+const configDir = path.join(os.homedir(), '.cpr');
+const configPath = path.join(configDir, 'config.json');
+
+if (!fs.existsSync(configDir)) {
+    fs.mkdirSync(configDir);
+    createDefaultConfig(configPath);
+}
+
 const config = loadConfig(configPath);
 
 // Setup ignore filter
@@ -95,9 +103,13 @@ function createRepoSummary(repoPath) {
 const argv = yargs
   .usage('Usage: cpr [options] <repoPath>')
   .command('config', 'Edit the configuration file', {}, () => {
+    console.log(`Config file location: ${configPath}`);
     const editor = process.env.EDITOR || 'vi';
-    const configFilePath = path.resolve(configPath);
-    execSync(`${editor} ${configFilePath}`, { stdio: 'inherit' });
+    execSync(`${editor} ${configPath}`, { stdio: 'inherit' });
+  })
+  .command('version', 'Show the version', {}, () => {
+    const packageJson = require('./package.json');
+    console.log(`Version: ${packageJson.version}`);
   })
   .help('h')
   .alias('h', 'help')
@@ -106,4 +118,8 @@ const argv = yargs
 // Handle the repo path argument
 const repoPath = argv._[0] || '.';
 
-createRepoSummary(repoPath);
+if (!argv._.length) {
+  yargs.showHelp();
+} else {
+  createRepoSummary(repoPath);
+}

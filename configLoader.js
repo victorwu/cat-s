@@ -2,18 +2,23 @@ const fs = require('fs');
 const path = require('path');
 
 function loadConfig(configPath) {
-  if (fs.existsSync(configPath)) {
-    try {
-      const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-      return config;
-    } catch (err) {
-      console.error(`Error reading configuration file at ${configPath}: ${err.message}`);
-      process.exit(1);
-    }
-  } else {
-    console.error(`Configuration file not found at ${configPath}`);
-    process.exit(1);
+  if (!fs.existsSync(configPath)) {
+    createDefaultConfig(configPath);
   }
+  return JSON.parse(fs.readFileSync(configPath, 'utf8'));
 }
 
-module.exports = { loadConfig };
+function createDefaultConfig(configPath) {
+  const defaultConfig = {
+    outputDir: '~/Downloads/cpr',
+    include: [],
+    exclude: [],
+    ignorePaths: ['node_modules', '.git']
+  };
+  fs.writeFileSync(configPath, JSON.stringify(defaultConfig, null, 2));
+}
+
+module.exports = {
+  loadConfig,
+  createDefaultConfig
+};
