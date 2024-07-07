@@ -9,5 +9,5 @@
                   "lib-stellar",
                   "lib-tron",
                   "lib-dash"],
-  "outputDir": "./summaries"
+  "outputDir": "~/Downloads/cpr"
 }

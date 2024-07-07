@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 const fs = require('fs');
 const path = require('path');
 const cliProgress = require('cli-progress');
@@ -5,6 +7,7 @@ const { execSync } = require('child_process');
 const { loadConfig } = require('./configLoader');
 const { setupIgnore, traverseDir } = require('./fileTraversal');
 const { appendFileContents } = require('./fileProcessing');
+const yargs = require('yargs');
 
 // Load configuration
 const configPath = path.join(__dirname, 'config.json');
@@ -68,7 +71,9 @@ function createRepoSummary(repoPath) {
     ? `repoSummary_${repoName}_(${commitHash}_${timestamp}).txt`
     : `repoSummary_${repoName}_${timestamp}.txt`;
 
-  const outputDir = path.resolve(config.outputDir);
+  const outputDir = path.resolve(config.outputDir.replace('~', process.env.HOME));
+  console.log(`Output directory resolved to: ${outputDir}`);
+  
   if (!fs.existsSync(outputDir)) {
     fs.mkdirSync(outputDir, { recursive: true });
     console.log(`Created output directory: ${outputDir}`);
@@ -86,6 +91,19 @@ function createRepoSummary(repoPath) {
   });
 }
 
-// Run the script with the repository path
-const repoPath = process.argv[2] || '.';
+// Define command-line options
+const argv = yargs
+  .usage('Usage: cpr [options] <repoPath>')
+  .command('config', 'Edit the configuration file', {}, () => {
+    const editor = process.env.EDITOR || 'vi';
+    const configFilePath = path.resolve(configPath);
+    execSync(`${editor} ${configFilePath}`, { stdio: 'inherit' });
+  })
+  .help('h')
+  .alias('h', 'help')
+  .argv;
+
+// Handle the repo path argument
+const repoPath = argv._[0] || '.';
+
 createRepoSummary(repoPath);
