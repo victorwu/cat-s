@@ -2,6 +2,12 @@
   "useGitignore": true,
   "include": [".js", ".jsx", ".json", ".md", ".sh", ".ts", ".tsx", ".yaml", ".yml", "Dockerfile"],
   "exclude": [".env", ".jpg", ".mp4", ".tsbuildinfo", "package-lock.json"],
-  "ignorePaths": [".git", "build", "config", "dist", "node_modules", "pnpm-lock.yaml"],
+  "ignorePaths": [".git", "build", "config", "dist", "node_modules", 
+          "pnpm-lock.yaml", 
+          "package-lock.json",
+                  "lib-ripple", 
+                  "lib-stellar",
+                  "lib-tron",
+                  "lib-dash"],
   "outputDir": "./summaries"
 }
