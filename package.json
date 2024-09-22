@@ -1,22 +1,37 @@
-
 {
-  "name": "cpr",
+  "name": "cat-s",
   "version": "1.0.0",
-  "description": "recursively parse through a repo into a single file importable into any AI",
-  "main": "createRepoSummary.js",
+  "description": "Concatenate and save: recursively parse through a repo into a single file",
+  "keywords": [
+    "cli",
+    "repository",
+    "summary",
+    "sitemap",
+    "documentation"
+  ],
+  "main": "index.js",
   "bin": {
-    "cpr": "./createRepoSummary.js"
+    "cats": "./index.js"
   },
   "dependencies": {
     "cli-progress": "^3.12.0",
     "ignore": "^5.3.1",
     "yargs": "^17.7.2"
   },
-  "devDependencies": {
-    "eslint": "^7.32.0"
+  "engines": {
+    "node": ">=14.0.0"
   },
   "scripts": {
-    "start": "node createRepoSummary.js"
+    "start": "node index.js"
   },
-  "author": "vw"
+  "author": "vw",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/victorwu/cat-s.git"
+  },
+  "bugs": {
+    "url": "https://github.com/victorwu/cat-s/issues"
+  },
+  "homepage": "https://github.com/victorwu/cat-s#readme",
+  "license": "MIT"
 }

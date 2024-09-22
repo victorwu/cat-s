@@ -4,10 +4,7 @@
   "exclude": [".env", ".jpg", ".mp4", ".tsbuildinfo", "package-lock.json"],
   "ignorePaths": [".git", "build", "config", "dist", "node_modules", 
           "pnpm-lock.yaml", 
-          "package-lock.json",
-                  "lib-ripple", 
-                  "lib-stellar",
-                  "lib-tron",
-                  "lib-dash"],
-  "outputDir": "~/Downloads/cpr"
+          "package-lock.json"],
+  "outputDir": "${HOME}/Downloads/cats",
+  "maxFileSize": 1024
 }

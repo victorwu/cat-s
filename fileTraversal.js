@@ -20,14 +20,26 @@ function shouldProcessFile(file, includeExtensions, excludeExtensions) {
 }
 
 function traverseDir(dir, fileStructure = {}, baseDir = dir, ig, includeExtensions, excludeExtensions, config) {
-  const files = fs.readdirSync(dir);
+  let files;
+  try {
+    files = fs.readdirSync(dir);
+  } catch (err) {
+    console.error(`Error reading directory ${dir}: ${err.message}`);
+    return fileStructure;
+  }
 
   files.forEach((file) => {
     const filePath = path.join(dir, file);
     const relativePath = path.relative(baseDir, filePath);
-    const stats = fs.statSync(filePath);
+    let stats;
+    try {
+      stats = fs.statSync(filePath);
+    } catch (err) {
+      console.error(`Error stating file ${filePath}: ${err.message}`);
+      return;
+    }
 
-    if (ig.ignores(relativePath) || filePath === baseDir || config.ignorePaths.includes(relativePath)) return;
+    if (ig.ignores(relativePath) || config.ignorePaths.includes(relativePath)) return;
 
     if (stats.isDirectory()) {
       console.log(`Traversing directory: ${relativePath}`);
@@ -42,4 +54,16 @@ function traverseDir(dir, fileStructure = {}, baseDir = dir, ig, includeExtensio
   return fileStructure;
 }
 
-module.exports = { setupIgnore, traverseDir, shouldProcessFile };
+function countFiles(fileStructure) {
+  let count = 0;
+  Object.keys(fileStructure).forEach((key) => {
+    if (fileStructure[key] && typeof fileStructure[key] === 'object') {
+      count += countFiles(fileStructure[key]);
+    } else {
+      count += 1;
+    }
+  });
+  return count;
+}
+
+module.exports = { setupIgnore, traverseDir, shouldProcessFile, countFiles };

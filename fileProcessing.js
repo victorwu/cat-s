@@ -18,24 +18,24 @@ function getLanguage(extension) {
   return languages[extension] || '';
 }
 
-function appendFileContents(dir, fileStructure, outputStream, baseDir, progress) {
+function appendFileContents(dir, fileStructure, outputStream, baseDir, progress, maxFileSize) {
   Object.keys(fileStructure).forEach((key) => {
     const filePath = path.join(dir, key);
     const relativePath = path.relative(baseDir, filePath);
     if (fileStructure[key]) {
-      appendFileContents(filePath, fileStructure[key], outputStream, baseDir, progress);
+      appendFileContents(filePath, fileStructure[key], outputStream, baseDir, progress, maxFileSize);
     } else {
       try {
         if (fs.existsSync(filePath)) {
           const stats = fs.statSync(filePath);
-          if (stats.size > 1024 * 1024) {
+          if (stats.size > maxFileSize * 1024) {  // Convert KB to Bytes
             console.log(`Skipping large file: ${relativePath}`);
             return;
           }
           const content = fs.readFileSync(filePath, 'utf8');
           const extension = path.extname(filePath);
           const language = getLanguage(extension);
-          const mdContent = `\n\n## ${relativePath}\n\n\`\`\`${language}\n${content}\n\`\`\`\n`;
+          const mdContent = `\n\n## ${relativePath}\n\n\`\`\`${language}\n${content}\n\`\`\`\nEnd of file: ${relativePath}\n`;
 
           outputStream.write(mdContent);
           console.log(`Content appended for: ${relativePath}`);

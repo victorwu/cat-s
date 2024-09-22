@@ -5,17 +5,17 @@ const path = require('path');
 const cliProgress = require('cli-progress');
 const { execSync } = require('child_process');
 const { loadConfig, createDefaultConfig } = require('./configLoader');
-const { setupIgnore, traverseDir } = require('./fileTraversal');
+const { setupIgnore, traverseDir, countFiles } = require('./fileTraversal');
 const { appendFileContents } = require('./fileProcessing');
 const yargs = require('yargs');
 const os = require('os');
 
 // Load configuration or create default config if it doesn't exist
-const configDir = path.join(os.homedir(), '.cpr');
+const configDir = path.join(os.homedir(), '.cats');
 const configPath = path.join(configDir, 'config.json');
 
 if (!fs.existsSync(configDir)) {
-    fs.mkdirSync(configDir);
+    fs.mkdirSync(configDir, { recursive: true });  // Ensure all parent directories are created
     createDefaultConfig(configPath);
 }
 
@@ -58,12 +58,10 @@ function getRepoName(repoPath) {
 }
 
 // Main function to create the repo summary files
-function createRepoSummary(repoPath) {
+function catSave(repoPath) {
   console.log('Scanning files...');
   const fileStructure = traverseDir(repoPath, {}, repoPath, ig, config.include, config.exclude, config);
-  const fileCount = Object.keys(fileStructure).reduce((count, key) => {
-    return count + (fileStructure[key] ? Object.keys(fileStructure[key]).length : 1);
-  }, 0);
+  const fileCount = countFiles(fileStructure); // Using countFiles function
 
   console.log(`Total files to process: ${fileCount}`);
 
@@ -79,7 +77,7 @@ function createRepoSummary(repoPath) {
     ? `repoSummary_${repoName}_(${commitHash}_${timestamp}).txt`
     : `repoSummary_${repoName}_${timestamp}.txt`;
 
-  const outputDir = path.resolve(config.outputDir.replace('~', process.env.HOME));
+  const outputDir = path.resolve(config.outputDir);
   console.log(`Output directory resolved to: ${outputDir}`);
   
   if (!fs.existsSync(outputDir)) {
@@ -92,7 +90,7 @@ function createRepoSummary(repoPath) {
   outputStream.write(`# File Structure Sitemap\n\n${sitemap}\n`);
   console.log(`Sitemap written: ${sitemapPath}`);
 
-  appendFileContents(repoPath, fileStructure, outputStream, repoPath, progress);
+  appendFileContents(repoPath, fileStructure, outputStream, repoPath, progress, config.maxFileSize);  // Pass maxFileSize
   outputStream.end(() => {
     progress.stop();
     console.log(`Repo summary created in ${sitemapPath}`);
@@ -101,7 +99,24 @@ function createRepoSummary(repoPath) {
 
 // Define command-line options
 const argv = yargs
-  .usage('Usage: cpr [options] <repoPath>')
+  .usage('Usage: cats [options] <repoPath>')
+  .option('o', {
+    alias: 'output',
+    description: 'Specify the output file path (default: "repo_summary.md")',
+    type: 'string',
+    default: 'repo_summary.md'
+  })
+  .option('i', {
+    alias: 'ignore',
+    description: 'Specify patterns to ignore (comma-separated)',
+    type: 'string'
+  })
+  .option('m', {
+    alias: 'max-file-size',
+    description: 'Maximum file size in KB to include (default: 1024)',
+    type: 'number',
+    default: 1024
+  })
   .command('config', 'Edit the configuration file', {}, () => {
     console.log(`Config file location: ${configPath}`);
     const editor = process.env.EDITOR || 'vi';
@@ -109,7 +124,7 @@ const argv = yargs
   })
   .command('version', 'Show the version', {}, () => {
     const packageJson = require('./package.json');
-    console.log(`Version: ${packageJson.version}`);
+    console.log(`cat-s version: ${packageJson.version}`);
   })
   .help('h')
   .alias('h', 'help')
@@ -118,8 +133,9 @@ const argv = yargs
 // Handle the repo path argument
 const repoPath = argv._[0] || '.';
 
-if (!argv._.length) {
+// If command is 'config' or 'version', the respective command handler will execute
+if (argv._.length === 0 && !argv.config && !argv.version) {
   yargs.showHelp();
 } else {
-  createRepoSummary(repoPath);
+  catSave(repoPath);
 }
